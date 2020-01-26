@@ -106,7 +106,7 @@ def create_management_client(app):
             db("DELETE FROM auth_keys WHERE unused = TRUE")
         return "All unused keys revoked."
 
-    @app.route("/api/DANGEROUS_revoke_all_keys", methods=["GET"])
+    @app.route("/api/DANGEROUS_revoke_all_keys", methods=["POST"])
     @oauth_secure(app)
     def revoke_all_keys():
         with connect_db() as db:
