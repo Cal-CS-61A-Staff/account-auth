@@ -9,17 +9,22 @@ ENDPOINT = "cal/cs61a/sp20"
 
 
 def is_staff(remote):
-    token = session.get("dev_token") or request.cookies.get("dev_token")
-    if not token:
+    try:
+        token = session.get("dev_token") or request.cookies.get("dev_token")
+        if not token:
+            return False
+        ret = remote.get("user")
+        for course in ret.data["data"]["participations"]:
+            if course["role"] not in AUTHORIZED_ROLES:
+                continue
+            if course["course"]["offering"] != ENDPOINT:
+                continue
+            return True
         return False
-    ret = remote.get("user")
-    for course in ret.data["data"]["participations"]:
-        if course["role"] not in AUTHORIZED_ROLES:
-            continue
-        if course["course"]["offering"] != ENDPOINT:
-            continue
-        return True
-    return False
+    except Exception as e:
+        # fail safe!
+        print(e)
+        return False
 
 
 def get_name(remote):
