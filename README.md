@@ -4,7 +4,7 @@ This tool allows applications to access Google Drive (and eventually Piazza) by 
 
 ## Quickstart
 
-To start, visit [auth.apps.cs61a.org](https://auth.apps.cs61a.org) and register a client with a unique `client_name`. Keep track of the `secret` returned after you register a client - you can't generate it again!
+To start, visit [auth.apps.cs61a.org](https://auth.apps.cs61a.org) and register a client with a unique `client_name`. Keep track of the `secret` returned after you register a client - you can't see it again!
 
 The `secret` lets applications access any Google Document or Sheet that is shared with the service account. The service account email address can be seen at  [auth.apps.cs61a.org](https://auth.apps.cs61a.org). **IMPORTANT: If the `secret` is compromised, _IMMEDIATELY_ go to [auth.apps.cs61a.org](https://auth.apps.cs61a.org) and recreate the client with a new `secret`**, as anyone with the `secret` can access any document shared with the service account.
 
