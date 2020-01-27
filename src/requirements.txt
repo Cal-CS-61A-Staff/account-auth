@@ -6,4 +6,4 @@ mysqlclient
 SQLAlchemy
 requests
 flask_oauthlib
-piazza-api
+git+https://github.com/hfaran/piazza-api.git@develop
