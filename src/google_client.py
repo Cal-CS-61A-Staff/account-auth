@@ -10,12 +10,12 @@ from google_api import load_document, load_sheet
 def create_google_client(app):
     def google_help():
         with connect_db() as db:
-            email = db("SELECT email FROM auth_json").fetchone()[0].decode("utf-8")
+            email = db("SELECT email FROM auth_json").fetchone()[0]
         return f"""
         <h3> Google Service Account </h3>
         Email address: <a href="mailto:{email}">{email}</a>
         <p>
-        Share relevant Google Documents / Spreadsheets with the above email account.
+        Share relevant Google Documents / Sheets with the above email account.
         <p>
         To configure, go to <a href="/google/config">Google Config</a>.
         """
@@ -60,6 +60,6 @@ def create_google_client(app):
         email = parsed["client_email"]
         with connect_db() as db:
             db("DROP TABLE IF EXISTS auth_json")
-            db("CREATE TABLE auth_json (email BLOB, data LONGBLOB)")
+            db("CREATE TABLE auth_json (email varchar(256), data LONGBLOB)")
             db("INSERT INTO auth_json VALUES (%s, %s)", [email, data])
         return "Success!"

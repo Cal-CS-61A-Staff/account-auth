@@ -9,8 +9,6 @@ from IGNORE_secrets import SECRET
 
 CONSUMER_KEY = "61a-account-auth"
 
-CONSUMER_KEY = "61a-web-repl"  # temp!
-
 
 def create_oauth_client(app):
     oauth = OAuth(app)
@@ -20,7 +18,7 @@ def create_oauth_client(app):
         "ok-server",  # Server Name
         consumer_key=CONSUMER_KEY,
         consumer_secret=SECRET,
-        request_token_params={"scope": "all", "state": lambda: security.gen_salt(10)},
+        request_token_params={"scope": "email", "state": lambda: security.gen_salt(10)},
         base_url="https://okpy.org/api/v3/",
         request_token_url=None,
         access_token_method="POST",
