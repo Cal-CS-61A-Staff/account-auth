@@ -44,25 +44,22 @@ def oauth_secure(app):
     return decorator
 
 
-def key_secure(app):
-    def decorator(route):
-        @wraps(route)
-        def wrapped(*args, **kwargs):
-            client_name = request.json["client_name"]
-            secret = request.json["secret"]
-            with connect_db() as db:
-                ret = db(
-                    "SELECT * FROM auth_keys WHERE client_name=(%s) AND auth_key = (%s)",
-                    [client_name, secret],
-                ).fetchone()
-                if not ret:
-                    abort(401)
-                db(
-                    "UPDATE auth_keys SET unused = FALSE WHERE client_name=(%s)",
-                    [client_name],
-                )
-            return route(*args, **kwargs)
+def key_secure(route):
+    @wraps(route)
+    def wrapped(*args, **kwargs):
+        client_name = request.json["client_name"]
+        secret = request.json["secret"]
+        with connect_db() as db:
+            ret = db(
+                "SELECT * FROM auth_keys WHERE client_name=(%s) AND auth_key = (%s)",
+                [client_name, secret],
+            ).fetchone()
+            if not ret:
+                abort(401)
+            db(
+                "UPDATE auth_keys SET unused = FALSE WHERE client_name=(%s)",
+                [client_name],
+            )
+        return route(*args, **kwargs)
 
-        return wrapped
-
-    return decorator
+    return wrapped

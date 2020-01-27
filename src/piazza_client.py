@@ -1,10 +1,8 @@
-import json
-
 from flask import request, jsonify
+from piazza_api import Piazza
 
 from auth_utils import key_secure, oauth_secure
 from db import connect_db
-from google_api import load_document
 
 
 def create_piazza_client(app):
@@ -28,14 +26,23 @@ def create_piazza_client(app):
 
     app.help_info.add(piazza_help)
 
-    @app.route("/piazza/action/<action>", methods=["POST"])
-    @key_secure(app)
+    @app.route("/piazza/<action>", methods=["POST"])
+    @key_secure
     def perform_action(action):
-        return jsonify(
-            load_document(
-                url=request.json.get("url"), doc_id=request.json.get("doc_id")
-            )
-        )
+        is_staff = request.json["staff"]
+        with connect_db() as db:
+            if is_staff:
+                course_id, user, pw = db("SELECT course_id, staff_user, staff_pw FROM piazza_config").fetchone()
+            else:
+                course_id, user, pw = db("SELECT course_id, student_user, student_pw FROM piazza_config").fetchone()
+            p = Piazza()
+            p.user_login(user, pw)
+            course = p.network(course_id)
+            kwargs = dict(request.json)
+            del kwargs["staff"]
+            del kwargs["client_name"]
+            del kwargs["secret"]
+            return jsonify(getattr(course, action)(**kwargs))
 
     @app.route("/piazza/config", methods=["GET"])
     @oauth_secure(app)

@@ -1,14 +1,16 @@
 # 61A Auth
 
-This tool allows applications to access Google Drive (and eventually Piazza) by wrapping the two APIs in a much simpler OKPy-based interface. 
+This tool allows applications to access Google Drive and Piazza by wrapping the two APIs in a much simpler OKPy-based interface. 
 
 ## Quickstart
 
 To start, visit [auth.apps.cs61a.org](https://auth.apps.cs61a.org) and register a client with a unique `client_name`. Keep track of the `secret` returned after you register a client - you can't generate it again!
 
-The `secret` lets applications access any Google Document or Sheet that is shared with the service account. The service account email address can be seen at  [auth.apps.cs61a.org](https://auth.apps.cs61a.org). **IMPORTANT: If the `secret` is compromised, _IMMEDIATELY_ go to [auth.apps.cs61a.org](https://auth.apps.cs61a.org) and recreate the client with a new `secret`**, as anyone with the `secret` can access any document shared with the service account.
+The `secret` lets applications access any Google Document or Sheet that is shared with the service account, as well as private Piazza posts. The service account email address can be seen at  [auth.apps.cs61a.org](https://auth.apps.cs61a.org). **IMPORTANT: If the `secret` is compromised, _IMMEDIATELY_ go to [auth.apps.cs61a.org](https://auth.apps.cs61a.org) and recreate the client with a new `secret`**, as anyone with the `secret` can access sensitive information shared with the service account.
 
 ## Basic Usage
+
+### Drive
 
 To read a Google Document, ensure that the service account has access to it, either by making the document visible to "anyone with the link" or by sharing it with the service account directly. Then, you can read the Google Document by making a POST request to `auth.apps.cs61a.org/google/read_document` with the document `url` as a JSON-encoded POST parameter, along with the `client_name` and `secret` For example, in Python, you can do
 ```python
@@ -28,12 +30,29 @@ import requests
 
 data = requests.post("https://auth.apps.cs61a.org/google/read_document", json={
     "url": "https://docs.google.com/spreadsheets/d/1sUeanmzo_Kj1HaXM2v0/edit",
-    "sheet_name": "Sheet5"
+    "sheet_name": "Sheet5",
     "client_name": "my-client",
     "secret": "my-secret",
 }).json()
 ```
 The body of the response will be a `List[List[String]]`, with the outer list containing each row until the last non-empty row, and the inner list containing each cell in its corresponding row until the last non-empty cell. As before, it will be JSON-encoded.
+
+### Piazza
+To interact with Piazza, make an authorized POST request to `auth.apps.cs61a.org/piazza/<action>`, where `<action>` is the desired action to take. Pass in the boolean JSON-encoded parameter `staff` to determine whether the action should be taken using a service account acting as a student or as a member of staff. 
+
+These actions correspond to methods of the same name on a `Network` object from the `piazza-api` Python package. To pass arguments into this method call, supply them as additional JSON keys in the POST request. The keys `client_name`, `secret`, and `staff` will be removed from the method call. The JSON-encoded method response will be returned.
+
+For example, to list recent posts on Piazza as seen by a student, you can make the request
+```python
+import requests
+
+recents = requests.post("https://auth.apps.cs61a.org/piazza/get_feed", json={
+    "limit": 150,
+    "staff": False,
+    "client_name": "my-client",
+    "client_secret": "my-secret",
+}).json()
+```
 
 ## Advanced Usage
 To programmatically create a client, make a POST request to `/api/request_key` with an OKPy cookie corresponding to an account with staff access to the okpy course `cal/cs61a/CURR_SEMESTER`. You can generate such a cookie by running `python3 ok --get-token` and storing it in the cookie `dev_token`. For the remainder of this section, all POST requests will require such a cookie to be in place.

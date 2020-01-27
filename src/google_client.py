@@ -22,14 +22,14 @@ def create_google_client(app):
     app.help_info.add(google_help)
 
     @app.route("/google/read_document", methods=["POST"])
-    @key_secure(app)
+    @key_secure
     def read_document():
         return jsonify(load_document(
             url=request.json.get("url"), doc_id=request.json.get("doc_id")
         ))
 
     @app.route("/google/read_spreadsheet", methods=["POST"])
-    @key_secure(app)
+    @key_secure
     def read_spreadsheet():
         return jsonify(load_sheet(
             url=request.json.get("url"),
