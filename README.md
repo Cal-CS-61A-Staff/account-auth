@@ -45,7 +45,7 @@ To revoke all keys that have never been used to handle a request, make a POST re
 To revoke *ALL* keys that have been issued, even those currently in use, make a POST request to `/api/DANGEROUS_revoke_all_keys`. In production, it should be very rare that this needs to be done - consider revoking individual keys by visiting the website or invoking the `revoke_key` API on individual clients.
 
 ## Deployment Instructions
-To quickly deploy an update, run `make deploy`. When deploying for the first time, you must first create a MySQL database linked to the app by running `dokku mysql:create auth auth`, before deploying. After deploying, you must visit `[auth.apps.cs61a.org/google/config](https://auth.apps.cs61a.org/google/config)` and upload a JSON corresponding to the Google service account, in order for the app to start working.
+To quickly deploy an update, run `make deploy`. When deploying for the first time, you must first create a MySQL database linked to the app by running `dokku mysql:create auth auth`, before deploying. After deploying, you must visit [auth.apps.cs61a.org/google/config](https://auth.apps.cs61a.org/google/config) and [auth.apps.cs61a.org/piazza/config](https://auth.apps.cs61a.org/piazza/config) and set everything up before the homepage will start working.
 
 ## Obtaining a Google Service Account
 Go to [console.cloud.google.com](https://console.cloud.google.com), create a project, then go to `IAM & admin -> Service accounts` and create a new account. You do not need to give this account a role, but you must download a file containing a JSON private key and upload it to the 61A Auth service.
