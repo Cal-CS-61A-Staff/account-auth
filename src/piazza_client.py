@@ -42,7 +42,10 @@ def create_piazza_client(app):
             del kwargs["staff"]
             del kwargs["client_name"]
             del kwargs["secret"]
-            return jsonify(getattr(course, action)(**kwargs))
+            try:
+                return jsonify(getattr(course, action)(**kwargs))
+            except Exception as e:
+                return str(e), 400
 
     @app.route("/piazza/config", methods=["GET"])
     @oauth_secure(app)
@@ -95,11 +98,11 @@ def create_piazza_client(app):
             else:
                 course_id, student_user, student_pw, staff_user, staff_pw = [""] * 5
 
-        course_id = request.form.get("course_id", course_id)
-        student_user = request.form.get("student_user", student_user)
-        student_pw = request.form.get("student_pw", student_pw)
-        staff_user = request.form.get("staff_user", staff_user)
-        staff_pw = request.form.get("staff_pw", staff_pw)
+        course_id = request.form["course_id"] or course_id
+        student_user = request.form["student_user"] or student_user
+        student_pw = request.form["student_pw"] or student_pw
+        staff_user = request.form["staff_user"] or staff_user
+        staff_pw = request.form["staff_pw"] or staff_pw
 
         with connect_db() as db:
             # noinspection SqlWithoutWhere
