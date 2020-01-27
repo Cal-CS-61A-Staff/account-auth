@@ -56,6 +56,17 @@ def create_piazza_client(app):
         except Exception as e:
             return str(e), 400
 
+    @app.route("/piazza/course_id", methods=["POST"])
+    @key_secure
+    def course_id():
+        is_test = request.json.get("test", False)
+        with connect_db() as db:
+            if is_test:
+                course_id, = db("SELECT test_course_id FROM piazza_config").fetchone()
+            else:
+                course_id, = db("SELECT course_id FROM piazza_config").fetchone()
+        return jsonify(course_id)
+
     @app.route("/piazza/config", methods=["GET"])
     @oauth_secure(app)
     def piazza_config():
