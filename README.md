@@ -38,7 +38,7 @@ data = requests.post("https://auth.apps.cs61a.org/google/read_document", json={
 The body of the response will be a `List[List[String]]`, with the outer list containing each row until the last non-empty row, and the inner list containing each cell in its corresponding row until the last non-empty cell. As before, it will be JSON-encoded.
 
 ### Piazza
-To interact with Piazza, make an authorized POST request to `auth.apps.cs61a.org/piazza/<action>`, where `<action>` is the desired action to take. Pass in the boolean JSON-encoded parameter `staff` to determine whether the action should be taken using a service account acting as a student or as a member of staff. 
+To interact with Piazza, make an authorized POST request to `auth.apps.cs61a.org/piazza/<action>`, where `<action>` is the desired action to take. Pass in the boolean JSON-encoded parameter `staff` to determine whether the action should be taken using a service account acting as a student or as a member of staff. Pass in the boolean parameter `test=true` to use the test Piazza - otherwise, the live Piazza will be used.
 
 These actions correspond to methods of the same name on a `Network` object from the `piazza-api` Python package. To pass arguments into this method call, supply them as additional JSON keys in the POST request. The keys `client_name`, `secret`, and `staff` will be removed from the method call. The JSON-encoded method response will be returned.
 
