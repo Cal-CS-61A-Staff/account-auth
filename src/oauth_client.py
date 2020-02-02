@@ -14,6 +14,12 @@ def create_oauth_client(app):
     oauth = OAuth(app)
     app.secret_key = SECRET
 
+    app.config.update(
+        SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Lax',
+    )
+
     remote = oauth.remote_app(
         "ok-server",  # Server Name
         consumer_key=CONSUMER_KEY,
