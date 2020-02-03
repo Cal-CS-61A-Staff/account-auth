@@ -20,8 +20,8 @@ else:
 @contextmanager
 def connect_db():
     def db(*args):
-        with engine.connect() as conn:
-            for _ in range(NUM_RETRIES):
+        for _ in range(NUM_RETRIES):
+            with engine.connect() as conn:
                 try:
                     try:
                         if isinstance(args[1][0], str):
@@ -37,7 +37,7 @@ def connect_db():
                     continue
                 else:
                     break
-            else:
-                print("{} repeated failures, transaction failed".format(NUM_RETRIES))
+        else:
+            print("{} repeated failures, transaction failed".format(NUM_RETRIES))
 
     yield db
