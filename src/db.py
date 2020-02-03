@@ -5,8 +5,8 @@ from contextlib import contextmanager
 from time import sleep
 
 import __main__
-from MySQLdb._exceptions import OperationalError
 from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError
 
 NUM_RETRIES = 5
 SLEEP_DELAY = 2
