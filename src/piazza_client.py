@@ -1,16 +1,38 @@
-from flask import request, jsonify
+from flask import request, jsonify, redirect
 from piazza_api import Piazza
 
-from auth_utils import key_secure, oauth_secure
+from auth_utils import key_secure, course_oauth_secure
 from db import connect_db
 
 
+def init_db():
+    with connect_db() as db:
+        db(
+            """CREATE TABLE IF NOT EXISTS piazza_config (
+                course_id varchar(256),
+                test_course_id varchar(256),
+                student_user varchar(256),
+                student_pw varchar(256),
+                staff_user varchar(256),
+                staff_pw varchar(256),
+                course varchar(128)
+            )"""
+        )
+
+
+init_db()
+
+
 def create_piazza_client(app):
-    def piazza_help():
+    def piazza_help(course):
         with connect_db() as db:
-            student_email, staff_email, course_id, test_course_id = db(
-                "SELECT student_user, staff_user, course_id, test_course_id FROM piazza_config"
+            ret = db(
+                "SELECT student_user, staff_user, course_id, test_course_id FROM piazza_config WHERE course=%s",
+                [course],
             ).fetchone()
+            student_email, staff_email, course_id, test_course_id = (
+                ret if ret else [""] * 4
+            )
         return f"""
         <h3> Piazza Service Accounts </h3>
         Student email address: <a href="mailto:{student_email}">{student_email}</a>
@@ -23,7 +45,7 @@ def create_piazza_client(app):
         <p>
         Enroll these accounts on the latest course Piazza.
         <p>
-        To configure, go to <a href="/piazza/config">Piazza Config</a>.
+        To configure, go to <a href="/piazza/{course}/config">Piazza Config</a>.
         """
 
     app.help_info.add(piazza_help)
@@ -35,9 +57,13 @@ def create_piazza_client(app):
         is_test = request.json.get("test", False)
         with connect_db() as db:
             if is_staff:
-                user, pw = db("SELECT staff_user, staff_pw FROM piazza_config").fetchone()
+                user, pw = db(
+                    "SELECT staff_user, staff_pw FROM piazza_config"
+                ).fetchone()
             else:
-                user, pw = db("SELECT student_user, student_pw FROM piazza_config").fetchone()
+                user, pw = db(
+                    "SELECT student_user, student_pw FROM piazza_config"
+                ).fetchone()
             if is_test:
                 course_id, = db("SELECT test_course_id FROM piazza_config").fetchone()
             else:
@@ -67,13 +93,13 @@ def create_piazza_client(app):
                 course_id, = db("SELECT course_id FROM piazza_config").fetchone()
         return jsonify(course_id)
 
-    @app.route("/piazza/config", methods=["GET"])
-    @oauth_secure(app)
-    def piazza_config():
+    @app.route("/piazza/<course>/config", methods=["GET"])
+    @course_oauth_secure(app)
+    def piazza_config(course):
         return """
             Enter account details for Piazza service accounts. Leave fields blank to avoid updating them.
             Ensure that these accounts are enrolled in the appropriate Piazzas!
-            <form action="/piazza/set_config" method="post">
+            <form action="/piazza/{}/set_config" method="post">
                 <label>
                     Piazza course ID <br />
                     <input name="course_id" type="text"> <br />
@@ -103,27 +129,21 @@ def create_piazza_client(app):
                 <label>
                 <input type="submit">
             </form>
-        """
+        """.format(course)
 
-    @app.route("/piazza/set_config", methods=["POST"])
-    @oauth_secure(app)
-    def set_piazza_config():
+    @app.route("/piazza/<course>/set_config", methods=["POST"])
+    @course_oauth_secure(app)
+    def set_piazza_config(course):
         with connect_db() as db:
-            db(
-                """CREATE TABLE IF NOT EXISTS piazza_config (
-                    course_id varchar(256),
-                    test_course_id varchar(256),
-                    student_user varchar(256),
-                    student_pw varchar(256),
-                    staff_user varchar(256),
-                    staff_pw varchar(256)
-                )"""
-            )
-            ret = db("SELECT * FROM piazza_config").fetchone()
+            ret = db("SELECT * FROM piazza_config WHERE course=(%s)", [course]).fetchone()
             if ret:
-                course_id, test_course_id, student_user, student_pw, staff_user, staff_pw = ret
+                course_id, test_course_id, student_user, student_pw, staff_user, staff_pw = (
+                    ret
+                )
             else:
-                course_id, test_course_id, student_user, student_pw, staff_user, staff_pw = [""] * 6
+                course_id, test_course_id, student_user, student_pw, staff_user, staff_pw = (
+                    [""] * 6
+                )
 
         course_id = request.form["course_id"] or course_id
         test_course_id = request.form["test_course_id"] or test_course_id
@@ -133,10 +153,17 @@ def create_piazza_client(app):
         staff_pw = request.form["staff_pw"] or staff_pw
 
         with connect_db() as db:
-            # noinspection SqlWithoutWhere
-            db("DELETE FROM piazza_config")
+            db("DELETE FROM piazza_config WHERE course=(%s)", [course])
             db(
-                "INSERT INTO piazza_config VALUES (%s, %s, %s, %s, %s, %s)",
-                [course_id, test_course_id, student_user, student_pw, staff_user, staff_pw],
+                "INSERT INTO piazza_config VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                [
+                    course_id,
+                    test_course_id,
+                    student_user,
+                    student_pw,
+                    staff_user,
+                    staff_pw,
+                    course,
+                ],
             )
-        return "Success!"
+        return redirect("/")

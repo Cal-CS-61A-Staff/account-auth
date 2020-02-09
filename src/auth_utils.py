@@ -5,10 +5,9 @@ from flask import session, request, url_for, redirect, abort
 from db import connect_db
 
 AUTHORIZED_ROLES = ["staff", "instructor"]
-ENDPOINT = "cal/cs61a/sp20"
 
 
-def is_staff(remote):
+def is_staff(remote, endpoint):
     try:
         token = session.get("dev_token") or request.cookies.get("dev_token")
         if not token:
@@ -17,7 +16,7 @@ def is_staff(remote):
         for course in ret.data["data"]["participations"]:
             if course["role"] not in AUTHORIZED_ROLES:
                 continue
-            if course["course"]["offering"] != ENDPOINT:
+            if course["course"]["offering"] != endpoint and endpoint is not None:
                 continue
             return True
         return False
@@ -31,11 +30,47 @@ def get_name(remote):
     return remote.get("user").data["data"]["name"]
 
 
+def is_logged_in(app, course=None):
+    if course:
+        with connect_db() as db:
+            endpoint = db("SELECT endpoint FROM courses WHERE course=(%s)", [course]).fetchone()[0]
+    else:
+        endpoint = None
+    return is_staff(app.remote, endpoint)
+
+
+def admin_oauth_secure(app):
+    def decorator(route):
+        @wraps(route)
+        def wrapped(*args, **kwargs):
+            assert "course" not in kwargs
+            if not is_logged_in(app, MASTER_COURSE):
+                return redirect(url_for("login"))
+            return route(*args, **kwargs)
+
+        return wrapped
+
+    return decorator
+
+
+def course_oauth_secure(app):
+    def decorator(route):
+        @wraps(route)
+        def wrapped(*args, **kwargs):
+            if not is_logged_in(app, kwargs["course"]):
+                return redirect(url_for("login"))
+            return route(*args, **kwargs)
+
+        return wrapped
+
+    return decorator
+
+
 def oauth_secure(app):
     def decorator(route):
         @wraps(route)
         def wrapped(*args, **kwargs):
-            if not is_staff(app.remote):
+            if not is_staff(app.remote, None):
                 return redirect(url_for("login"))
             return route(*args, **kwargs)
 
@@ -63,3 +98,6 @@ def key_secure(route):
         return route(*args, **kwargs)
 
     return wrapped
+
+
+MASTER_COURSE = "cs61a"
