@@ -68,3 +68,9 @@ To quickly deploy an update, run `make deploy`. When deploying for the first tim
 
 ## Obtaining a Google Service Account
 Go to [console.cloud.google.com](https://console.cloud.google.com), create a project, then go to `IAM & admin -> Service accounts` and create a new account. You do not need to give this account a role, but you must download a file containing a JSON private key and upload it to the 61A Auth service.
+
+## Development Instructions
+ - Clone the repository and install the dependencies in `src/requirements.txt`. 
+ - Open `src/oauth_client.py` and change the `CONSUMER_KEY` and `SECRET` variables to correspond to a valid okpy OAuth client. Contact the maintainer of this project to obtain these variables. 
+ - Install and set up `mysql`. In `mysql`, run `CREATE DATABASE account_proxy;`. 
+ - Then run `src/app.py`, and the server should start.
