@@ -2,7 +2,7 @@ import re
 import string
 from random import SystemRandom
 
-from flask import request, redirect
+from flask import request, redirect, jsonify
 
 from db import connect_db
 from auth_utils import oauth_secure, get_name, admin_oauth_secure, course_oauth_secure, MASTER_COURSE, is_staff, \
@@ -171,6 +171,16 @@ def create_management_client(app):
         with connect_db() as db:
             db("DELETE FROM courses WHERE course = (%s)", [course])
         return redirect("/")
+
+    @app.route("/api/<course>/get_endpoint", methods=["POST"])
+    def get_endpoint(course):
+        # note: deliberately not secured, not sensitive data
+        with connect_db() as db:
+            endpoint = db("SELECT endpoint FROM courses WHERE course = (%s)", [course]).fetchone()
+        if endpoint:
+            return jsonify(endpoint[0])
+        else:
+            return jsonify(None)
 
     @app.route("/api/<course>/set_endpoint", methods=["POST"])
     @course_oauth_secure(app)
