@@ -4,7 +4,7 @@ from flask import session, request, url_for, redirect, abort
 
 from db import connect_db
 
-AUTHORIZED_ROLES = ["staff", "instructor"]
+AUTHORIZED_ROLES = ["staff", "instructor", "grader"]
 
 
 def is_staff(remote, endpoint):
