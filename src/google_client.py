@@ -32,18 +32,19 @@ def create_google_client(app):
 
     @app.route("/google/read_document", methods=["POST"])
     @key_secure
-    def read_document():
+    def read_document(course):
         return jsonify(load_document(
-            url=request.json.get("url"), doc_id=request.json.get("doc_id")
+            url=request.json.get("url"), doc_id=request.json.get("doc_id"), course=course,
         ))
 
     @app.route("/google/read_spreadsheet", methods=["POST"])
     @key_secure
-    def read_spreadsheet():
+    def read_spreadsheet(course):
         return jsonify(load_sheet(
             url=request.json.get("url"),
             doc_id=request.json.get("doc_id"),
             sheet_name=request.json["sheet_name"],
+            course=course,
         ))
 
     @app.route("/google/<course>/config", methods=["GET"])

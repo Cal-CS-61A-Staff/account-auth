@@ -52,22 +52,22 @@ def create_piazza_client(app):
 
     @app.route("/piazza/<action>", methods=["POST"])
     @key_secure
-    def perform_action(action):
+    def perform_action(action, course):
         is_staff = request.json["staff"]
         is_test = request.json.get("test", False)
         with connect_db() as db:
             if is_staff:
                 user, pw = db(
-                    "SELECT staff_user, staff_pw FROM piazza_config"
+                    "SELECT staff_user, staff_pw FROM piazza_config WHERE course = (%s)", [course]
                 ).fetchone()
             else:
                 user, pw = db(
-                    "SELECT student_user, student_pw FROM piazza_config"
+                    "SELECT student_user, student_pw FROM piazza_config WHERE course = (%s)", [course]
                 ).fetchone()
             if is_test:
-                course_id, = db("SELECT test_course_id FROM piazza_config").fetchone()
+                course_id, = db("SELECT test_course_id FROM piazza_config WHERE course = (%s)", [course]).fetchone()
             else:
-                course_id, = db("SELECT course_id FROM piazza_config").fetchone()
+                course_id, = db("SELECT course_id FROM piazza_config WHERE course = (%s)", [course]).fetchone()
 
         p = Piazza()
         p.user_login(user, pw)
@@ -84,13 +84,13 @@ def create_piazza_client(app):
 
     @app.route("/piazza/course_id", methods=["POST"])
     @key_secure
-    def course_id():
+    def course_id(course):
         is_test = request.json.get("test", False)
         with connect_db() as db:
             if is_test:
-                course_id, = db("SELECT test_course_id FROM piazza_config").fetchone()
+                course_id, = db("SELECT test_course_id FROM piazza_config WHERE course=(%s)", [course]).fetchone()
             else:
-                course_id, = db("SELECT course_id FROM piazza_config").fetchone()
+                course_id, = db("SELECT course_id FROM piazza_config WHERE course=(%s)", [course]).fetchone()
         return jsonify(course_id)
 
     @app.route("/piazza/<course>/config", methods=["GET"])
@@ -137,7 +137,7 @@ def create_piazza_client(app):
         with connect_db() as db:
             ret = db("SELECT * FROM piazza_config WHERE course=(%s)", [course]).fetchone()
             if ret:
-                course_id, test_course_id, student_user, student_pw, staff_user, staff_pw = (
+                course_id, test_course_id, student_user, student_pw, staff_user, staff_pw, _ = (
                     ret
                 )
             else:
