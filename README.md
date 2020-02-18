@@ -28,7 +28,7 @@ To read a Google Sheet (e.g. to use one to configure an application), make an an
 ```python
 import requests
 
-data = requests.post("https://auth.apps.cs61a.org/google/read_document", json={
+data = requests.post("https://auth.apps.cs61a.org/google/read_spreadsheet", json={
     "url": "https://docs.google.com/spreadsheets/d/1sUeanmzo_Kj1HaXM2v0/edit",
     "sheet_name": "Sheet5",
     "client_name": "my-client",
