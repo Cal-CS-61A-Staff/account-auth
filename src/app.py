@@ -1,5 +1,7 @@
 from flask import Flask
 
+from admins_client import create_admins_client
+from auth_client import create_auth_client
 from domains_client import create_domains_client
 from google_client import create_google_client
 from management_client import create_management_client
@@ -14,6 +16,8 @@ if __name__ == "__main__":
 
 create_oauth_client(app)
 create_management_client(app)
+create_auth_client(app)
+create_admins_client(app)
 create_google_client(app)
 create_piazza_client(app)
 create_slack_client(app)

@@ -1,10 +1,15 @@
 from functools import wraps
 
-from flask import session, request, url_for, redirect, abort
+from flask import session, request, url_for, redirect, abort, g
 
 from db import connect_db
 
 AUTHORIZED_ROLES = ["staff", "instructor", "grader"]
+
+
+def get_user(remote):
+    g.user_data = g.get("user_data") or remote.get("user")
+    return g.user_data
 
 
 def is_staff(remote, endpoint):
@@ -12,8 +17,21 @@ def is_staff(remote, endpoint):
         token = session.get("dev_token") or request.cookies.get("dev_token")
         if not token:
             return False
-        ret = remote.get("user")
-        for course in ret.data["data"]["participations"]:
+
+        email = get_user(remote).data["data"]["email"]
+        with connect_db() as db:
+            if endpoint:
+                [course] = db("SELECT course FROM courses WHERE endpoint=(%s)", [endpoint]).fetchone()
+                admins = db("SELECT email FROM course_admins WHERE course=(%s)", [course]).fetchall()
+                admins = set(x[0] for x in admins)
+                if admins:
+                    if email in admins:
+                        db("UPDATE course_admins SET name=(%s) WHERE email=(%s)", [get_name(remote), email])
+                        return True
+                    else:
+                        return False
+        # otherwise, let anyone on staff access
+        for course in get_user(remote).data["data"]["participations"]:
             if course["role"] not in AUTHORIZED_ROLES:
                 continue
             if course["course"]["offering"] != endpoint and endpoint is not None:
@@ -27,7 +45,7 @@ def is_staff(remote, endpoint):
 
 
 def get_name(remote):
-    return remote.get("user").data["data"]["name"]
+    return get_user(remote).data["data"]["name"]
 
 
 def is_logged_in(app, course=None):

@@ -6,7 +6,7 @@ from flask import request, redirect, jsonify
 
 from db import connect_db
 from auth_utils import oauth_secure, get_name, admin_oauth_secure, course_oauth_secure, MASTER_COURSE, is_staff, \
-    is_logged_in
+    is_logged_in, key_secure
 
 
 def init_db():
@@ -70,3 +70,11 @@ def create_domains_client(app):
                 [domain, course],
             )
         return redirect("/")
+
+    @app.route("/domains/get_course", methods=["POST"])
+    def get_course():
+        # note: deliberately not secured, not sensitive data
+        domain = request.json["domain"]
+        with connect_db() as db:
+            [course] = db("SELECT course FROM domains_config WHERE domain = (%s)", [domain]).fetchone()
+        return jsonify(course)
