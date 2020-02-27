@@ -149,6 +149,12 @@ def create_management_client(app):
             db("DELETE FROM courses WHERE course = (%s)", [course])
         return redirect("/")
 
+    @app.route("/api/list_courses", methods=["POST"])
+    def list_courses():
+        # note: deliberately not secured, not sensitive data
+        with connect_db() as db:
+            return jsonify([list(x) for x in db("SELECT course, endpoint FROM courses").fetchall()])
+
     @app.route("/api/<course>/get_endpoint", methods=["POST"])
     def get_endpoint(course):
         # note: deliberately not secured, not sensitive data
