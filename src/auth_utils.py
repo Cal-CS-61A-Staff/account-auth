@@ -48,6 +48,10 @@ def get_name(remote):
     return get_user(remote).data["data"]["name"]
 
 
+def get_email(remote):
+    return get_user(remote).data["data"]["email"]
+
+
 def is_logged_in(app, course=None):
     if course:
         with connect_db() as db:
