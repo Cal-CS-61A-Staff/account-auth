@@ -2,10 +2,19 @@ import re
 import string
 from random import SystemRandom
 
-from flask import request, redirect, jsonify
+from flask import request, redirect, jsonify, url_for
 
 from db import connect_db
-from auth_utils import oauth_secure, admin_oauth_secure, course_oauth_secure, MASTER_COURSE, is_staff, is_logged_in
+from auth_utils import (
+    oauth_secure,
+    admin_oauth_secure,
+    course_oauth_secure,
+    MASTER_COURSE,
+    is_staff,
+    is_logged_in,
+    get_name,
+)
+from html_utils import make_row
 
 
 def init_db():
@@ -17,6 +26,14 @@ def init_db():
                 creator varchar(128),
                 course varchar(128),
                 service varchar(128),
+                unused BOOLEAN
+             )"""
+        )
+        db(
+            """CREATE TABLE IF NOT EXISTS super_auth_keys (
+                client_name varchar(128), 
+                auth_key varchar(128),
+                creator varchar(128),
                 unused BOOLEAN
              )"""
         )
@@ -75,13 +92,16 @@ def create_management_client(app):
         with connect_db() as db:
             courses = db("SELECT course, endpoint FROM courses").fetchall()
         courses = [
-            '{} ({}), at endpoint {} (<a href="/api/remove_course?course={}">Remove</a>)'.format(
-                prettify(course), course, endpoint, course
+            make_row(
+                "{} ({}), at endpoint {}".format(prettify(course), course, endpoint),
+                url_for("remove_course", course=course),
             )
             for course, endpoint in courses
         ]
+
         return """
             <h2>Admin</h2>
+            <h3>Courses</h3>
             Activate Auth for a new course (method only available to 61A admins):
             <form action="/api/add_course" method="post">
                 <input name="course" type="text" placeholder="course name">
@@ -92,8 +112,37 @@ def create_management_client(app):
             courses
         )
 
+    def super_clients():
+        with connect_db() as db:
+            ret = db(
+                "SELECT client_name, creator, unused FROM super_auth_keys"
+            ).fetchall()
+        super_client_names = [
+            make_row(
+                f'{client_name}, created by {creator} {"(unused)" if unused else ""} ',
+                url_for("revoke_super_key", client_name=client_name),
+            )
+            for client_name, creator, unused in ret
+        ]
+        return f"""
+            <h3>Super-Clients</h3>
+            <p>
+            Warning - the API keys for these clients are extremely sensitive, 
+            as they can access <i>any</i> course's data. Only use them for 61A-hosted apps, 
+            and reset them whenever a head TA leaves course staff.
+            </p>
+            Create new super-client and obtain secret key:
+            <form action="{url_for("create_super_key")}" method="post">
+                <input name="client_name" type="text" placeholder="client_name">
+                <input type="submit">
+            </form>
+        """ + "<p>".join(
+            super_client_names
+        )
+
     app.general_info.add(general_help)
     app.general_info.add(add_course)
+    app.general_info.add(super_clients)
 
     def course_config(course):
         with connect_db() as db:
@@ -122,7 +171,9 @@ def create_management_client(app):
     def index():
         out = [app.general_info.render()]
         with connect_db() as db:
-            for course, endpoint in db("SELECT course, endpoint FROM courses").fetchall():
+            for course, endpoint in db(
+                "SELECT course, endpoint FROM courses"
+            ).fetchall():
                 if is_staff(app.remote, endpoint):
                     out.append(app.help_info.render(course))
         return "".join(out)
@@ -133,7 +184,10 @@ def create_management_client(app):
         course = request.form["course"]
         endpoint = request.form["endpoint"]
         if not prettify(course):
-            return "Course code not formatted correctly. It should be lowercase with no spaces.", 400
+            return (
+                "Course code not formatted correctly. It should be lowercase with no spaces.",
+                400,
+            )
         with connect_db() as db:
             ret = db("SELECT * FROM courses WHERE course = (%s)", course).fetchone()
             if ret:
@@ -141,7 +195,7 @@ def create_management_client(app):
             db("INSERT INTO courses VALUES (%s, %s)", [course, endpoint])
         return redirect("/")
 
-    @app.route("/api/remove_course", methods=["GET"])
+    @app.route("/api/remove_course", methods=["POST"])
     @admin_oauth_secure(app)
     def remove_course():
         course = request.args["course"]
@@ -153,13 +207,17 @@ def create_management_client(app):
     def list_courses():
         # note: deliberately not secured, not sensitive data
         with connect_db() as db:
-            return jsonify([list(x) for x in db("SELECT course, endpoint FROM courses").fetchall()])
+            return jsonify(
+                [list(x) for x in db("SELECT course, endpoint FROM courses").fetchall()]
+            )
 
     @app.route("/api/<course>/get_endpoint", methods=["POST"])
     def get_endpoint(course):
         # note: deliberately not secured, not sensitive data
         with connect_db() as db:
-            endpoint = db("SELECT endpoint FROM courses WHERE course = (%s)", [course]).fetchone()
+            endpoint = db(
+                "SELECT endpoint FROM courses WHERE course = (%s)", [course]
+            ).fetchone()
         if endpoint:
             return jsonify(endpoint[0])
         else:
@@ -170,5 +228,38 @@ def create_management_client(app):
     def set_endpoint(course):
         endpoint = request.form["endpoint"]
         with connect_db() as db:
-            db("UPDATE courses SET endpoint = (%s) WHERE course = (%s)", [endpoint, course])
+            db(
+                "UPDATE courses SET endpoint = (%s) WHERE course = (%s)",
+                [endpoint, course],
+            )
+        return redirect("/")
+
+    @app.route("/api/request_super_key", methods=["POST"])
+    @admin_oauth_secure(app)
+    def create_super_key():
+        name = request.form["client_name"]
+        key = gen_key()
+        with connect_db() as db:
+            ret = db(
+                "SELECT * FROM auth_keys WHERE client_name = (%s)", [name]
+            ).fetchone()
+            if ret:
+                return "client_name already in use", 409
+            ret = db(
+                "SELECT * FROM super_auth_keys WHERE client_name = (%s)", [name]
+            ).fetchone()
+            if ret:
+                return "client_name already in use", 409
+            db(
+                "INSERT INTO super_auth_keys VALUES (%s, %s, %s, %s)",
+                [name, key, get_name(app.remote), True],
+            )
+        return key
+
+    @app.route("/api/revoke_super_key", methods=["POST"])
+    @admin_oauth_secure(app)
+    def revoke_super_key():
+        name = request.args["client_name"]
+        with connect_db() as db:
+            db("DELETE FROM super_auth_keys WHERE client_name = (%s)", [name])
         return redirect("/")

@@ -1,12 +1,8 @@
-import re
-import string
-from random import SystemRandom
+from flask import jsonify, redirect, request, url_for
 
-from flask import request, redirect, jsonify
-
+from auth_utils import course_oauth_secure
 from db import connect_db
-from auth_utils import oauth_secure, get_name, admin_oauth_secure, course_oauth_secure, MASTER_COURSE, is_staff, \
-    is_logged_in, key_secure
+from html_utils import make_row
 
 
 def init_db():
@@ -30,7 +26,7 @@ def create_domains_client(app):
                 [course],
             ).fetchall()
         client_names = [
-            f'{domain} (<a href="/domains/{course}/remove_domain?domain={domain}">Remove</a>)'
+            make_row(domain, url_for("remove_domain", domain=domain, course=course))
             for domain, in ret
         ]
         register_domain = f"""
@@ -60,7 +56,7 @@ def create_domains_client(app):
             )
         return redirect("/")
 
-    @app.route("/domains/<course>/remove_domain", methods=["GET", "POST"])
+    @app.route("/domains/<course>/remove_domain", methods=["POST"])
     @course_oauth_secure(app)
     def remove_domain(course):
         domain = request.args["domain"]

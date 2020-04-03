@@ -107,17 +107,29 @@ def key_secure(route):
         client_name = request.json["client_name"]
         secret = request.json["secret"]
         with connect_db() as db:
-            ret = db(
+            ret_regular = db(
                 "SELECT course FROM auth_keys WHERE client_name=(%s) AND auth_key = (%s)",
                 [client_name, secret],
             ).fetchone()
-            if not ret:
+            ret_super = db(
+                "SELECT course FROM super_auth_keys WHERE client_name=(%s) AND auth_key = (%s)",
+                [client_name, secret],
+            ).fetchone()
+            if ret_regular:
+                db(
+                    "UPDATE auth_keys SET unused = FALSE WHERE client_name=(%s)",
+                    [client_name],
+                )
+                course = ret_regular[0]
+            elif ret_super:
+                db(
+                    "UPDATE super_auth_keys SET unused = FALSE WHERE client_name=(%s)",
+                    [client_name],
+                )
+                course = request.json["course"]
+            else:
                 abort(401)
-            db(
-                "UPDATE auth_keys SET unused = FALSE WHERE client_name=(%s)",
-                [client_name],
-            )
-        return route(*args, **kwargs, course=ret[0])
+        return route(*args, **kwargs, course=course)
 
     return wrapped
 

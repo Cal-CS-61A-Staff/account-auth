@@ -51,7 +51,7 @@ def create_auth_client(app):
         ]
         create_client = f"""
             Create new client and obtain secret key:
-            <form action="{url_for("create_key", course=course)}" method="get">
+            <form action="{url_for("create_key", course=course)}" method="post">
                 <input name="client_name" type="text" placeholder="client_name">
                 <input type="submit">
             </form>
@@ -60,7 +60,7 @@ def create_auth_client(app):
 
     app.help_info.add(client_data)
 
-    @app.route("/auth/<course>/request_key", methods=["GET", "POST"])
+    @app.route("/auth/<course>/request_key", methods=["POST"])
     @course_oauth_secure(app)
     def create_key(course):
         name = request.args["client_name"]
@@ -71,13 +71,18 @@ def create_auth_client(app):
             ).fetchone()
             if ret:
                 return "client_name already in use", 409
+            ret = db(
+                "SELECT * FROM super_auth_keys WHERE client_name = (%s)", [name]
+            ).fetchone()
+            if ret:
+                return "client_name already in use", 409
             db(
                 "INSERT INTO auth_keys VALUES (%s, %s, %s, %s, %s, %s)",
                 [name, key, get_name(app.remote), course, "all", True],
             )
         return key
 
-    @app.route("/auth/<course>/revoke_key", methods=["GET", "POST"])
+    @app.route("/auth/<course>/revoke_key", methods=["POST"])
     @course_oauth_secure(app)
     def revoke_key(course):
         name = request.args["client_name"]
@@ -85,7 +90,7 @@ def create_auth_client(app):
             db("DELETE FROM auth_keys WHERE client_name = (%s) and course = (%s)", [name, course])
         return redirect("/")
 
-    @app.route("/auth/<course>/revoke_all_unused_keys", methods=["GET", "POST"])
+    @app.route("/auth/<course>/revoke_all_unused_keys", methods=["POST"])
     @course_oauth_secure(app)
     def revoke_all_unused_keys(course):
         with connect_db() as db:
