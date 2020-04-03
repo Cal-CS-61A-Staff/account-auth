@@ -76,6 +76,7 @@ def create_piazza_client(app):
         del kwargs["staff"]
         del kwargs["client_name"]
         del kwargs["secret"]
+        kwargs.pop("course", None)
         kwargs.pop("test", None)
         try:
             return jsonify(getattr(course, action)(**kwargs))

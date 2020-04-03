@@ -112,7 +112,7 @@ def key_secure(route):
                 [client_name, secret],
             ).fetchone()
             ret_super = db(
-                "SELECT course FROM super_auth_keys WHERE client_name=(%s) AND auth_key = (%s)",
+                "SELECT client_name FROM super_auth_keys WHERE client_name=(%s) AND auth_key = (%s)",
                 [client_name, secret],
             ).fetchone()
             if ret_regular:
