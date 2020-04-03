@@ -6,6 +6,7 @@ from flask import redirect, request, url_for
 
 from auth_utils import admin_oauth_secure, course_oauth_secure, get_name
 from db import connect_db
+from html_utils import make_row
 
 
 def init_db():
@@ -45,8 +46,10 @@ def create_auth_client(app):
                 [course],
             ).fetchall()
         client_names = [
-            f'{client_name}, created by {creator} {"(unused)" if unused else ""} '
-            f'(<a href="{url_for("revoke_key", course=course, client_name=client_name)}">Remove</a>)'
+            make_row(
+                f'{client_name}, created by {creator} {"(unused)" if unused else ""} ',
+                url_for("revoke_key", course=course, client_name=client_name),
+            )
             for client_name, creator, unused in ret
         ]
         create_client = f"""
@@ -87,7 +90,10 @@ def create_auth_client(app):
     def revoke_key(course):
         name = request.args["client_name"]
         with connect_db() as db:
-            db("DELETE FROM auth_keys WHERE client_name = (%s) and course = (%s)", [name, course])
+            db(
+                "DELETE FROM auth_keys WHERE client_name = (%s) and course = (%s)",
+                [name, course],
+            )
         return redirect("/")
 
     @app.route("/auth/<course>/revoke_all_unused_keys", methods=["POST"])
