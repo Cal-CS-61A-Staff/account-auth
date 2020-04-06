@@ -202,7 +202,7 @@ def create_management_client(app):
             ret = db("SELECT * FROM courses WHERE course = (%s)", course).fetchone()
             if ret:
                 return "A course already exists with the same name.", 403
-            db("INSERT INTO courses VALUES (%s, %s)", [course, endpoint])
+            db("INSERT INTO courses VALUES (%s, %s, %s)", [course, endpoint, None])
         return redirect("/")
 
     @app.route("/api/remove_course", methods=["POST"])
