@@ -13,6 +13,7 @@ from auth_utils import (
     is_staff,
     is_logged_in,
     get_name,
+    get_user
 )
 from html_utils import make_row
 
@@ -40,12 +41,13 @@ def init_db():
         db(
             """CREATE TABLE IF NOT EXISTS courses (
                 course varchar(128),
-                endpoint varchar(128)
+                endpoint varchar(128),
+                endpoint_id INTEGER
             )"""
         )
         ret = db("SELECT * FROM courses WHERE course=(%s)", [MASTER_COURSE]).fetchone()
         if not ret:
-            db("INSERT INTO courses VALUES (%s, %s)", ["cs61a", "cal/cs61a/sp20"])
+            db("INSERT INTO courses VALUES (%s, %s)", ["cs61a", "cal/cs61a/sp20", 151])
 
 
 init_db()
@@ -146,13 +148,22 @@ def create_management_client(app):
 
     def course_config(course):
         with connect_db() as db:
-            endpoint = db(
-                "SELECT endpoint FROM courses WHERE course=(%s)", [course]
-            ).fetchone()[0]
+            endpoint, endpoint_id = db(
+                "SELECT endpoint, endpoint_id FROM courses WHERE course=(%s)", [course]
+            ).fetchone()
+
+            user_data = get_user(app.remote).data
+            for participation in user_data["data"]["participations"]:
+                print(endpoint, endpoint_id)
+                if participation["course"]["offering"] == endpoint:
+                    endpoint_id = participation["course_id"]
+
+            db("UPDATE courses SET endpoint_id=(%s) WHERE endpoint=(%s)", [[endpoint_id, endpoint]])
+
             return """
                 <h3>Config</h3>
                 <p>
-                Current endpoint: {}
+                Current endpoint: {} (id: {})
                 </p>
                 Set new endpoint:
                 <form action="/api/{}/set_endpoint" method="post">
@@ -160,7 +171,7 @@ def create_management_client(app):
                     <input type="submit">
                 </form>
             """.format(
-                endpoint, course
+                endpoint, endpoint_id, course
             )
 
     app.help_info.add(lambda course: "<h2>{}</h2>".format(prettify(course)))
@@ -233,6 +244,17 @@ def create_management_client(app):
                 [endpoint, course],
             )
         return redirect("/")
+
+    @app.route("/api/<course>/get_endpoint_id", methods=["POST"])
+    def get_endpoint_id(course):
+        with connect_db() as db:
+            endpoint = db(
+                "SELECT endpoint_id FROM courses WHERE course = (%s)", [course]
+            ).fetchone()
+        if endpoint:
+            return jsonify(endpoint[0])
+        else:
+            return jsonify(None)
 
     @app.route("/api/request_super_key", methods=["POST"])
     @admin_oauth_secure(app)
