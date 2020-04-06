@@ -154,7 +154,6 @@ def create_management_client(app):
 
             user_data = get_user(app.remote).data
             for participation in user_data["data"]["participations"]:
-                print(endpoint, endpoint_id)
                 if participation["course"]["offering"] == endpoint:
                     endpoint_id = participation["course_id"]
 

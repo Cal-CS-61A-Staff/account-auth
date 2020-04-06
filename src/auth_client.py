@@ -66,7 +66,7 @@ def create_auth_client(app):
     @app.route("/auth/<course>/request_key", methods=["POST"])
     @course_oauth_secure(app)
     def create_key(course):
-        name = request.args["client_name"]
+        name = request.form["client_name"]
         key = gen_key()
         with connect_db() as db:
             ret = db(
