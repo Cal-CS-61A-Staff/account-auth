@@ -140,7 +140,7 @@ def create_slack_client(app):
         channel_data = requests.post(
             f"https://slack.apps.cs61a.org/api/{course}/list_channels",
             json={
-                "secret": "IRL8Y39XMSD3BYV1MAK3HE3KBIXNMLQTM6JV8RBQ53Z3JHSQORIV1ROL43592O7Q"
+                "secret": getenv("SLACK_API_SECRET")
             },
         ).json()
 
