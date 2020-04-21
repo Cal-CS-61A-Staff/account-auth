@@ -92,30 +92,30 @@ def create_admins_client(app):
             )
         return redirect(url_for("index"))
 
-    @app.route("/admins/<query_course>/is_admin", methods=["POST"])
+    @app.route("/admins/is_admin", methods=["POST"])
     @key_secure
-    def is_admin(course, query_course):
+    def is_admin(course):
         email = request.json["email"]
         with connect_db() as db:
             return jsonify(
                 bool(
                     db(
                         "SELECT * FROM course_admins WHERE email=(%s) AND course=(%s)",
-                        [email, query_course],
+                        [email, course],
                     ).fetchone()
                 )
             )
 
-    @app.route("/admins/<query_course>/list_admins", methods=["POST"])
+    @app.route("/admins/list_admins", methods=["POST"])
     @key_secure
-    def list_admins(course, query_course):
+    def list_admins(course):
         with connect_db() as db:
             return jsonify(
                 [
                     list(x)
                     for x in db(
                         "SELECT email, name FROM course_admins WHERE course=(%s)",
-                        [query_course],
+                        [course],
                     ).fetchall()
                 ]
             )
