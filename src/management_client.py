@@ -115,6 +115,8 @@ def create_management_client(app):
         )
 
     def super_clients():
+        if not is_logged_in(app, MASTER_COURSE):
+            return ""
         with connect_db() as db:
             ret = db(
                 "SELECT client_name, creator, unused FROM super_auth_keys"
