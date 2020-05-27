@@ -12,7 +12,7 @@ def get_user(remote):
     return g.user_data
 
 
-def is_staff(remote, endpoint):
+def is_staff(remote, course):
     try:
         token = session.get("dev_token") or request.cookies.get("dev_token")
         if not token:
@@ -20,8 +20,7 @@ def is_staff(remote, endpoint):
 
         email = get_user(remote).data["data"]["email"]
         with connect_db() as db:
-            if endpoint:
-                [course] = db("SELECT course FROM courses WHERE endpoint=(%s)", [endpoint]).fetchone()
+            if course:
                 admins = db("SELECT email FROM course_admins WHERE course=(%s)", [course]).fetchall()
                 admins = set(x[0] for x in admins)
                 if admins:
@@ -30,11 +29,17 @@ def is_staff(remote, endpoint):
                         return True
                     else:
                         return False
+
         # otherwise, let anyone on staff access
-        for course in get_user(remote).data["data"]["participations"]:
-            if course["role"] not in AUTHORIZED_ROLES:
+        with connect_db() as db:
+            if course is not None:
+                [endpoint] = db("SELECT endpoint FROM courses WHERE course=(%s)", [course])
+            else:
+                endpoint = None
+        for participation in get_user(remote).data["data"]["participations"]:
+            if participation["role"] not in AUTHORIZED_ROLES:
                 continue
-            if course["course"]["offering"] != endpoint and endpoint is not None:
+            if participation["course"]["offering"] != endpoint and endpoint is not None:
                 continue
             return True
         return False
@@ -52,21 +57,12 @@ def get_email(remote):
     return get_user(remote).data["data"]["email"]
 
 
-def is_logged_in(app, course=None):
-    if course:
-        with connect_db() as db:
-            endpoint = db("SELECT endpoint FROM courses WHERE course=(%s)", [course]).fetchone()[0]
-    else:
-        endpoint = None
-    return is_staff(app.remote, endpoint)
-
-
 def admin_oauth_secure(app):
     def decorator(route):
         @wraps(route)
         def wrapped(*args, **kwargs):
             assert "course" not in kwargs
-            if not is_logged_in(app, MASTER_COURSE):
+            if not is_staff(app.remote, MASTER_COURSE):
                 return redirect(url_for("login"))
             return route(*args, **kwargs)
 
@@ -79,7 +75,7 @@ def course_oauth_secure(app):
     def decorator(route):
         @wraps(route)
         def wrapped(*args, **kwargs):
-            if not is_logged_in(app, kwargs["course"]):
+            if not is_staff(app.remote, kwargs["course"]):
                 return redirect(url_for("login"))
             return route(*args, **kwargs)
 

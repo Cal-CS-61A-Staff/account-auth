@@ -11,7 +11,6 @@ from auth_utils import (
     course_oauth_secure,
     MASTER_COURSE,
     is_staff,
-    is_logged_in,
     get_name,
     get_user
 )
@@ -89,7 +88,7 @@ def create_management_client(app):
         """
 
     def add_course():
-        if not is_logged_in(app, MASTER_COURSE):
+        if not is_staff(app.remote, MASTER_COURSE):
             return ""
         with connect_db() as db:
             courses = db("SELECT course, endpoint FROM courses").fetchall()
@@ -115,7 +114,7 @@ def create_management_client(app):
         )
 
     def super_clients():
-        if not is_logged_in(app, MASTER_COURSE):
+        if not is_staff(app.remote, MASTER_COURSE):
             return ""
         with connect_db() as db:
             ret = db(
@@ -186,7 +185,7 @@ def create_management_client(app):
             for course, endpoint in db(
                 "SELECT course, endpoint FROM courses"
             ).fetchall():
-                if is_staff(app.remote, endpoint):
+                if is_staff(app.remote, course):
                     out.append(app.help_info.render(course))
         return "".join(out)
 
