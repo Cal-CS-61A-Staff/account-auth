@@ -126,6 +126,9 @@ def create_slack_client(app):
         workspace = request.form["workspace"].split(".")[0]
 
         with connect_db() as db:
+            existing = db("SELECT course FROM slack_config WHERE workspace=(%s) AND course <>(%s)", [workspace, course]).fetchone()
+            if existing:
+                return "{} is already using that workspace.".format(existing)
             db("DELETE FROM slack_config WHERE course=(%s)", [course])
             db("INSERT INTO slack_config VALUES (%s, %s)", [course, workspace])
 
