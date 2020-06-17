@@ -33,7 +33,7 @@ def is_staff(remote, course):
         # otherwise, let anyone on staff access
         with connect_db() as db:
             if course is not None:
-                [endpoint] = db("SELECT endpoint FROM courses WHERE course=(%s)", [course])
+                [endpoint] = db("SELECT endpoint FROM courses WHERE course=(%s)", [course]).fetchone()
             else:
                 endpoint = None
         for participation in get_user(remote).data["data"]["participations"]:
