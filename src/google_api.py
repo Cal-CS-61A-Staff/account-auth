@@ -52,3 +52,16 @@ def load_sheet(*, url=None, doc_id=None, sheet_name, course):
     doc_id = doc_id or get_doc_id(url)
     result = service.spreadsheets().values().get(spreadsheetId=doc_id, range=sheet_name).execute()
     return result["values"]
+
+def dump_sheet(*, url=None, doc_id=None, sheet_name, course, content):
+    service = googleapiclient.discovery.build(
+        "sheets", "v4", credentials=get_credentials(course)
+    )
+    doc_id = doc_id or get_doc_id(url)
+    result = service.spreadsheets().values().update(
+        spreadsheetId=doc_id,
+        range=sheet_name,
+        valueInputOption="USER_ENTERED",
+        body=dict(range=sheet_name, values=content)
+    ).execute()
+    return {"success" : True}

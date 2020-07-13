@@ -1,6 +1,6 @@
 # 61A Auth
 
-This tool allows applications to access Google Drive and Piazza by wrapping the two APIs in a much simpler OKPy-based interface. 
+This tool allows applications to access Google Drive and Piazza by wrapping the two APIs in a much simpler OKPy-based interface.
 
 ## Quickstart
 
@@ -37,6 +37,22 @@ data = requests.post("https://auth.apps.cs61a.org/google/read_spreadsheet", json
 ```
 The body of the response will be a `List[List[String]]`, with the outer list containing each row until the last non-empty row, and the inner list containing each cell in its corresponding row until the last non-empty cell. As before, it will be JSON-encoded.
 
+To write a Google spreadsheet, make sure the service account can write to it, and then run
+
+```python
+import requests
+
+text = requests.post("https://auth.apps.cs61a.org/google/write_spreadsheet", json={
+    "url": "https://docs.google.com/document/d/10xo4ofWCnYbmmNBGDGQqVfpOZVo/edit",
+    "sheet_name",
+    "content": [["A1", "B1", "C1"], ["A2", "B2", "C2"]],
+    "client_name": "my-client",
+    "secret": "my-secret"
+}).json()
+```
+
+Where `content` is in the safe format as the return value of `read_spreadsheet`. The response should be `{"success" : True}`
+
 ### Piazza
 To interact with Piazza, make an authorized POST request to `auth.apps.cs61a.org/piazza/<action>`, where `<action>` is the desired action to take. Pass in the boolean JSON-encoded parameter `staff` to determine whether the action should be taken using a service account acting as a student or as a member of staff. Pass in the boolean parameter `test=true` to use the test Piazza - otherwise, the live Piazza will be used.
 
@@ -70,7 +86,7 @@ To quickly deploy an update, run `make deploy`. When deploying for the first tim
 Go to [console.cloud.google.com](https://console.cloud.google.com), create a project, then go to `IAM & admin -> Service accounts` and create a new account. You do not need to give this account a role, but you must download a file containing a JSON private key and upload it to the 61A Auth service.
 
 ## Development Instructions
- - Clone the repository and install the dependencies in `src/requirements.txt`. 
- - Open `src/oauth_client.py` and change the `CONSUMER_KEY` and `SECRET` variables to correspond to a valid okpy OAuth client. Contact the maintainer of this project to obtain these variables. 
- - Install and set up `mysql`. In `mysql`, run `CREATE DATABASE account_proxy;`. 
+ - Clone the repository and install the dependencies in `src/requirements.txt`.
+ - Open `src/oauth_client.py` and change the `CONSUMER_KEY` and `SECRET` variables to correspond to a valid okpy OAuth client. Contact the maintainer of this project to obtain these variables.
+ - Install and set up `mysql`. In `mysql`, run `CREATE DATABASE account_proxy;`.
  - Then run `src/app.py`, and the server should start.

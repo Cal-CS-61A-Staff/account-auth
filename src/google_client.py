@@ -4,7 +4,7 @@ from flask import request, jsonify, redirect
 
 from auth_utils import key_secure, course_oauth_secure
 from db import connect_db
-from google_api import load_document, load_sheet
+from google_api import load_document, load_sheet, dump_sheet
 
 
 def init_db():
@@ -44,6 +44,17 @@ def create_google_client(app):
             url=request.json.get("url"),
             doc_id=request.json.get("doc_id"),
             sheet_name=request.json["sheet_name"],
+            course=course,
+        ))
+
+    @app.route("/google/write_spreadsheet", methods=["POST"])
+    @key_secure
+    def write_spreadsheet(course):
+        return jsonify(dump_sheet(
+            url=request.json.get("url"),
+            doc_id=request.json.get("doc_id"),
+            sheet_name=request.json["sheet_name"],
+            content=request.json["content"],
             course=course,
         ))
 
